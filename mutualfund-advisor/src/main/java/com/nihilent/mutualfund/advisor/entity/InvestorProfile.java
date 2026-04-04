@@ -1,7 +1,10 @@
 package com.nihilent.mutualfund.advisor.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -14,29 +17,32 @@ public class InvestorProfile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "investor_id")
     private Long investorId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private Users user;
 
+    @Column(name = "age", nullable = false)
     private Integer age;
 
-    @Column(name = "annual_income")
+    @Column(name = "annual_income", precision = 15, scale = 2)
     private BigDecimal annualIncome;
 
+    @Column(name = "occupation", length = 100)
     private String occupation;
 
-    @Column(name = "investment_goal")
+    @Column(name = "investment_goal", length = 50)
     private String investmentGoal;
 
-    @Column(name = "investment_horizon")
+    @Column(name = "investment_horizon", length = 30)
     private String investmentHorizon;
 
-    @Column(name = "liquidity_preference")
+    @Column(name = "liquidity_preference", length = 30)
     private String liquidityPreference;
 
-    @Column(name = "investment_experience")
+    @Column(name = "investment_experience", length = 30)
     private String investmentExperience;
 
     @Column(name = "created_at")

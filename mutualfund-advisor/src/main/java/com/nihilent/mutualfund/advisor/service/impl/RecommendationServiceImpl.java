@@ -34,7 +34,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         // Get latest risk assessment
         RiskAssessment assessment = assessmentRepo
-                .findTopByInvestorInvestorIdOrderByAssessedAtDesc(investorId)
+                .findTopByInvestor_InvestorIdOrderByAssessedAtDesc(investorId)
                 .orElseThrow(() -> new RuntimeException("No assessment found"));
 
         String riskLevel = assessment.getRiskLevel();
@@ -61,7 +61,10 @@ public class RecommendationServiceImpl implements RecommendationService {
             Recommendation rec = new Recommendation();
             rec.setInvestor(investor);
             rec.setFund(fund);
-            rec.setMatchScore(calculateScore(fund, investor));
+            BigDecimal baseScore = calculateScore(fund, investor);
+            rec.setBaseMatchScore(baseScore);
+            rec.setMarketAdjustedScore(baseScore);
+            rec.setConfidenceScore(new BigDecimal("100.00"));
             rec.setRecommendationReason("Matches your risk level: " + riskLevel);
             rec.setRecommendationStatus("ACTIVE");
             rec.setModelVersion("v1");
