@@ -14,4 +14,9 @@ public interface UserAlertRepository extends JpaRepository<UserAlert, Long> {
     List<UserAlert> findByUser_UserIdAndIsReadFalseOrderByCreatedAtDesc(Long userId);
 
     List<UserAlert> findByUser_UserIdOrderByCreatedAtDesc(Long userId);
+
+    List<UserAlert> findByUser_UserIdAndIsReadFalse(Long userId);
+
+    boolean existsByUser_UserIdAndRecommendation_RecommendationIdAndIsReadFalse(
+            Long userId, Long recommendationId);
 }
