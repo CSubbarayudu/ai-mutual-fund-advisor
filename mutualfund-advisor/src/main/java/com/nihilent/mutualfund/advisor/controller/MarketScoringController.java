@@ -1,5 +1,6 @@
 package com.nihilent.mutualfund.advisor.controller;
 
+import com.nihilent.mutualfund.advisor.dto.ApiResponse;
 import com.nihilent.mutualfund.advisor.dto.ScoringResultDto;
 import com.nihilent.mutualfund.advisor.service.MarketScoringService;
 import lombok.RequiredArgsConstructor;
@@ -22,19 +23,21 @@ public class MarketScoringController {
     private final MarketScoringService marketScoringService;
 
     @GetMapping("/investor/{investorId}")
-    public ResponseEntity<List<ScoringResultDto>> scoreInvestor(@PathVariable Long investorId) {
-        return ResponseEntity.ok(marketScoringService.scoreAllFundsForInvestor(investorId));
+    public ResponseEntity<ApiResponse<List<ScoringResultDto>>> scoreInvestor(@PathVariable Long investorId) {
+        List<ScoringResultDto> result = marketScoringService.scoreAllFundsForInvestor(investorId);
+        return ResponseEntity.ok(ApiResponse.success("Scoring completed", result));
     }
 
     @GetMapping("/investor/{investorId}/fund/{fundId}")
-    public ResponseEntity<ScoringResultDto> scoreOneFund(
+    public ResponseEntity<ApiResponse<ScoringResultDto>> scoreOneFund(
             @PathVariable Long investorId, @PathVariable Long fundId) {
-        return ResponseEntity.ok(marketScoringService.scoreOneFundForInvestor(investorId, fundId));
+        ScoringResultDto result = marketScoringService.scoreOneFundForInvestor(investorId, fundId);
+        return ResponseEntity.ok(ApiResponse.success("Fund scored", result));
     }
 
     @PostMapping("/trigger-cycle")
-    public ResponseEntity<String> triggerCycle() {
+    public ResponseEntity<ApiResponse<String>> triggerCycle() {
         marketScoringService.runFullMarketScoringCycle();
-        return ResponseEntity.ok("Scoring cycle triggered successfully");
+        return ResponseEntity.ok(ApiResponse.success("Scoring cycle triggered successfully"));
     }
 }

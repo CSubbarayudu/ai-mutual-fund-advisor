@@ -1,20 +1,11 @@
 package com.nihilent.mutualfund.advisor.service.impl;
 
 import com.nihilent.mutualfund.advisor.dto.ScoringResultDto;
-import com.nihilent.mutualfund.advisor.entity.FundSectorAllocation;
-import com.nihilent.mutualfund.advisor.entity.InvestorProfile;
-import com.nihilent.mutualfund.advisor.entity.MarketEvent;
-import com.nihilent.mutualfund.advisor.entity.MarketEventSector;
-import com.nihilent.mutualfund.advisor.entity.MutualFund;
-import com.nihilent.mutualfund.advisor.entity.Recommendation;
-import com.nihilent.mutualfund.advisor.entity.RiskAssessment;
-import com.nihilent.mutualfund.advisor.repository.FundSectorAllocationRepository;
-import com.nihilent.mutualfund.advisor.repository.InvestorProfileRepository;
-import com.nihilent.mutualfund.advisor.repository.MarketEventSectorRepository;
-import com.nihilent.mutualfund.advisor.repository.MutualFundRepository;
-import com.nihilent.mutualfund.advisor.repository.RecommendationRepository;
-import com.nihilent.mutualfund.advisor.repository.RiskAssessmentRepository;
-import com.nihilent.mutualfund.advisor.repository.UserAlertRepository;
+import com.nihilent.mutualfund.advisor.entity.*;
+import com.nihilent.mutualfund.advisor.exception.FundNotFoundException;
+import com.nihilent.mutualfund.advisor.exception.InvestorNotFoundException;
+import com.nihilent.mutualfund.advisor.exception.RiskAssessmentNotFoundException;
+import com.nihilent.mutualfund.advisor.repository.*;
 import com.nihilent.mutualfund.advisor.service.AlertGeneratorService;
 import com.nihilent.mutualfund.advisor.service.MarketScoringService;
 import lombok.RequiredArgsConstructor;
@@ -48,17 +39,14 @@ public class MarketScoringServiceImpl implements MarketScoringService {
     public ScoringResultDto scoreOneFundForInvestor(Long investorId, Long fundId) {
         InvestorProfile investor = investorProfileRepository
                 .findById(investorId)
-                .orElseThrow(() -> new RuntimeException("Investor not found: " + investorId));
-
+                .orElseThrow(() -> new InvestorNotFoundException(investorId));
         MutualFund fund = mutualFundRepository
                 .findById(fundId)
-                .orElseThrow(() -> new RuntimeException("Fund not found: " + fundId));
-
+                .orElseThrow(() -> new FundNotFoundException(fundId));
         String investorRiskLevel = riskAssessmentRepository
                 .findTopByInvestor_InvestorIdOrderByAssessedAtDesc(investorId)
                 .map(RiskAssessment::getRiskLevel)
-                .orElseThrow(() -> new RuntimeException("No risk assessment for investor: " + investorId));
-
+                .orElseThrow(() -> new RiskAssessmentNotFoundException(investorId));
         BigDecimal baseMatchScore = BigDecimal.ZERO;
 
         if (fund.getRiskLevel().equalsIgnoreCase(investorRiskLevel)) {

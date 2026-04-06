@@ -1,7 +1,3 @@
--- ============================================================
--- AI Mutual Fund Advisor — PostgreSQL Schema (16 Tables FINAL)
--- ============================================================
-
 -- GROUP A: CORE IDENTITY
 CREATE TABLE IF NOT EXISTS users (
     user_id     BIGSERIAL PRIMARY KEY,
@@ -31,7 +27,7 @@ CREATE TABLE IF NOT EXISTS investor_profile (
 -- GROUP A: RISK ENGINE
 CREATE TABLE IF NOT EXISTS risk_question (
     question_id   BIGSERIAL PRIMARY KEY,
-    question_text TEXT        NOT NULL,
+    question_text TEXT        NOT NULL UNIQUE,
     category      VARCHAR(50),
     weight        INT         NOT NULL DEFAULT 1,
     active_flag   BOOLEAN     NOT NULL DEFAULT TRUE,
@@ -67,7 +63,7 @@ CREATE TABLE IF NOT EXISTS sector (
 
 CREATE TABLE IF NOT EXISTS mutual_fund (
     fund_id            BIGSERIAL PRIMARY KEY,
-    fund_name          VARCHAR(200) NOT NULL,
+    fund_name          VARCHAR(200) NOT NULL UNIQUE,
     amc_name           VARCHAR(150) NOT NULL,
     category           VARCHAR(80),
     risk_level         VARCHAR(20)  NOT NULL,
@@ -103,7 +99,7 @@ CREATE TABLE IF NOT EXISTS investor_holding (
 -- GROUP C: MARKET EVENTS
 CREATE TABLE IF NOT EXISTS market_event (
     event_id          BIGSERIAL PRIMARY KEY,
-    event_title       VARCHAR(255) NOT NULL,
+    event_title       VARCHAR(255) NOT NULL UNIQUE,
     event_description TEXT,
     impact_type       VARCHAR(20)  NOT NULL,
     credibility_score DECIMAL(3,1) DEFAULT 8.0,
@@ -176,12 +172,3 @@ CREATE TABLE IF NOT EXISTS fund_document_chunk (
     chunk_text       TEXT   NOT NULL,
     embedding_vector TEXT
 );
-
--- INDEXES
-CREATE INDEX IF NOT EXISTS idx_investor_user        ON investor_profile(user_id);
-CREATE INDEX IF NOT EXISTS idx_risk_assessment_inv  ON risk_assessment(investor_id);
-CREATE INDEX IF NOT EXISTS idx_recommendation_inv   ON recommendation(investor_id);
-CREATE INDEX IF NOT EXISTS idx_fund_sector_fund     ON fund_sector_allocation(fund_id);
-CREATE INDEX IF NOT EXISTS idx_market_event_sector  ON market_event_sector(event_id);
-CREATE INDEX IF NOT EXISTS idx_user_alert_user      ON user_alert(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_history_user    ON chat_history(user_id);

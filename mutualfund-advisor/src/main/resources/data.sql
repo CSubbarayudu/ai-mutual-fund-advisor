@@ -20,19 +20,19 @@ INSERT INTO risk_question (question_text, category, weight, active_flag) VALUES
 ('How stable is your current income source?',                              'FINANCIAL',  2, TRUE),
 ('What would you do if markets fall sharply for 6 continuous months?',    'BEHAVIOR',   2, TRUE),
 ('What is your current age group?',                                        'FINANCIAL',  1, TRUE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (question_text) DO NOTHING;
 
--- MUTUAL FUNDS
-INSERT INTO mutual_fund (fund_name, amc_name, category, risk_level, expense_ratio, return_1y, return_3y, minimum_investment, investment_horizon, volatility_score, fund_status) VALUES
-('HDFC Technology Fund',                    'HDFC AMC',             'EQUITY', 'HIGH',     0.950, 22.5, 18.3, 500.00,  'LONG',   8.5, 'ACTIVE'),
-('SBI Banking & Financial Services Fund',   'SBI Funds Management', 'EQUITY', 'HIGH',     0.890, 15.2, 12.8, 500.00,  'LONG',   7.2, 'ACTIVE'),
-('ICICI Prudential Pharma Healthcare Fund', 'ICICI Prudential AMC', 'EQUITY', 'MODERATE', 1.100, 18.7, 14.5, 1000.00, 'LONG',   6.8, 'ACTIVE'),
-('Mirae Asset Large Cap Fund',              'Mirae Asset',          'EQUITY', 'MODERATE', 0.550, 14.3, 13.1, 1000.00, 'MEDIUM', 5.5, 'ACTIVE'),
-('Axis Liquid Fund',                        'Axis AMC',             'DEBT',   'LOW',      0.180,  7.2,  6.8, 500.00,  'SHORT',  1.5, 'ACTIVE'),
-('Nippon India Small Cap Fund',             'Nippon India',         'EQUITY', 'HIGH',     1.050, 31.2, 24.6, 100.00,  'LONG',   9.2, 'ACTIVE'),
-('HDFC Hybrid Equity Fund',                 'HDFC AMC',             'HYBRID', 'MODERATE', 0.780, 16.8, 13.5, 500.00,  'MEDIUM', 5.8, 'ACTIVE'),
-('SBI Magnum Gilt Fund',                    'SBI Funds Management', 'DEBT',   'LOW',      0.450,  8.1,  7.3, 5000.00, 'MEDIUM', 2.1, 'ACTIVE')
-ON CONFLICT DO NOTHING;
+-- MUTUAL FUNDS (Fixed: Removed volatility_score)
+INSERT INTO mutual_fund (fund_name, amc_name, category, risk_level, expense_ratio, return_1y, return_3y, minimum_investment, investment_horizon, fund_status) VALUES
+('HDFC Technology Fund',                    'HDFC AMC',             'EQUITY', 'HIGH',     0.950, 22.5, 18.3, 500.00,  'LONG',   'ACTIVE'),
+('SBI Banking & Financial Services Fund',   'SBI Funds Management', 'EQUITY', 'HIGH',     0.890, 15.2, 12.8, 500.00,  'LONG',   'ACTIVE'),
+('ICICI Prudential Pharma Healthcare Fund', 'ICICI Prudential AMC', 'EQUITY', 'MODERATE', 1.100, 18.7, 14.5, 1000.00, 'LONG',   'ACTIVE'),
+('Mirae Asset Large Cap Fund',              'Mirae Asset',          'EQUITY', 'MODERATE', 0.550, 14.3, 13.1, 1000.00, 'MEDIUM', 'ACTIVE'),
+('Axis Liquid Fund',                        'Axis AMC',             'DEBT',   'LOW',      0.180,  7.2,  6.8, 500.00,  'SHORT',  'ACTIVE'),
+('Nippon India Small Cap Fund',             'Nippon India',         'EQUITY', 'HIGH',     1.050, 31.2, 24.6, 100.00,  'LONG',   'ACTIVE'),
+('HDFC Hybrid Equity Fund',                 'HDFC AMC',             'HYBRID', 'MODERATE', 0.780, 16.8, 13.5, 500.00,  'MEDIUM', 'ACTIVE'),
+('SBI Magnum Gilt Fund',                    'SBI Funds Management', 'DEBT',   'LOW',      0.450,  8.1,  7.3, 5000.00, 'MEDIUM', 'ACTIVE')
+ON CONFLICT (fund_name) DO NOTHING;
 
 -- FUND SECTOR ALLOCATIONS
 INSERT INTO fund_sector_allocation (fund_id, sector_id, allocation_percentage) VALUES
@@ -64,7 +64,7 @@ INSERT INTO market_event (event_title, event_description, impact_type, credibili
  'NEGATIVE', 9.0, 'MEDIUM_TERM', 'VERIFIED',
  'https://reuters.com/technology/us-chip-ban',
  NOW(), NOW() + INTERVAL '30 days')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (event_title) DO NOTHING;
 
 INSERT INTO market_event_sector (event_id, sector_id, impact_severity) VALUES
 (1,(SELECT sector_id FROM sector WHERE sector_name='IT'),     8.5),
