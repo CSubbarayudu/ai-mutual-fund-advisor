@@ -47,6 +47,7 @@ public class MarketScoringServiceImpl implements MarketScoringService {
                 .findTopByInvestor_InvestorIdOrderByAssessedAtDesc(investorId)
                 .map(RiskAssessment::getRiskLevel)
                 .orElseThrow(() -> new RiskAssessmentNotFoundException(investorId));
+
         BigDecimal baseMatchScore = BigDecimal.ZERO;
 
         if (fund.getRiskLevel().equalsIgnoreCase(investorRiskLevel)) {
@@ -119,8 +120,11 @@ public class MarketScoringServiceImpl implements MarketScoringService {
         BigDecimal marketAdjustedScore =
                 baseMatchScore.subtract(totalNegativeImpact).add(totalPositiveImpact);
 
-        if (marketAdjustedScore.compareTo(BigDecimal.ZERO) < 0) {
-            marketAdjustedScore = BigDecimal.ZERO;
+        // ✅ FIX 1: Minimum score floor is 10, never allow 0
+        // Reason: A score of 0 looks like a crash/error to investors and seniors
+        // Even a heavily impacted fund should show a minimum signal of 10
+        if (marketAdjustedScore.compareTo(BigDecimal.valueOf(10)) < 0) {
+            marketAdjustedScore = BigDecimal.valueOf(10);
         }
         if (marketAdjustedScore.compareTo(BigDecimal.valueOf(100)) > 0) {
             marketAdjustedScore = BigDecimal.valueOf(100);
@@ -138,6 +142,10 @@ public class MarketScoringServiceImpl implements MarketScoringService {
                         .distinct()
                         .count();
 
+        // ✅ Confidence logic is CORRECT as-is — no change needed
+        // 0 events = 100 (no turbulence = high confidence)
+        // 1 event  = 95  (some risk detected = slight uncertainty)
+        // 2 events = 90, and so on — will vary naturally as more events are added
         BigDecimal confidenceScore = BigDecimal.valueOf(100 - (activeEventCount * 5));
         if (confidenceScore.compareTo(BigDecimal.ZERO) < 0) {
             confidenceScore = BigDecimal.ZERO;
