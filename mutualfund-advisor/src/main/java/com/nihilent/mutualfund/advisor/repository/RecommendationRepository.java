@@ -3,6 +3,7 @@ package com.nihilent.mutualfund.advisor.repository;
 import com.nihilent.mutualfund.advisor.entity.Recommendation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +24,12 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     List<Recommendation> findByInvestor_InvestorIdAndRecommendationStatus(Long investorId, String status);
 
     List<Recommendation> findByInvestor_InvestorIdOrderByMarketAdjustedScoreDesc(Long investorId);
+
+    @Query("SELECT DISTINCT r FROM Recommendation r " +
+           "JOIN r.fund f " +
+           "JOIN f.sectorAllocations sa " +
+           "WHERE r.recommendationStatus = 'ACTIVE' " +
+           "AND sa.sector.sectorId IN :sectorIds")
+    List<Recommendation> findActiveRecommendationsBySectorIds(
+            @Param("sectorIds") List<Long> sectorIds);
 }

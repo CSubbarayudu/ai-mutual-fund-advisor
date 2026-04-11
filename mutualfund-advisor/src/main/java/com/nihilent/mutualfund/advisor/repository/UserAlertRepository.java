@@ -3,6 +3,7 @@ package com.nihilent.mutualfund.advisor.repository;
 import com.nihilent.mutualfund.advisor.entity.UserAlert;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +22,6 @@ public interface UserAlertRepository extends JpaRepository<UserAlert, Long> {
             Long userId, Long recommendationId);
 
     Optional<UserAlert> findByAlertIdAndUser_UserId(Long alertId, Long userId);
+
+    List<UserAlert> findByCreatedAtAfter(LocalDateTime since);
 }

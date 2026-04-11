@@ -9,5 +9,5 @@ public interface MarketEventSectorRepository extends JpaRepository<MarketEventSe
 
     List<MarketEventSector> findBySector_SectorId(Long sectorId);
 
-    List<MarketEventSector> findByMarketEvent_EventId(Long eventId);
+    List<MarketEventSector> findByMarketEventEventId(Long eventId);
 }
