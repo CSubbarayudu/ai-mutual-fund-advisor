@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Secrets (VERY IMPORTANT)
+src/main/resources/application.properties
+.env
+
+# OS / temp
+*.log

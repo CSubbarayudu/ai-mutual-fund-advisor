@@ -21,4 +21,6 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     Optional<Recommendation> findByInvestor_InvestorIdAndFund_FundId(Long investorId, Long fundId);
 
     List<Recommendation> findByInvestor_InvestorIdAndRecommendationStatus(Long investorId, String status);
+
+    List<Recommendation> findByInvestor_InvestorIdOrderByMarketAdjustedScoreDesc(Long investorId);
 }
