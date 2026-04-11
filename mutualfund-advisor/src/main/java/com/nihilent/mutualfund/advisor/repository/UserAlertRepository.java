@@ -19,4 +19,6 @@ public interface UserAlertRepository extends JpaRepository<UserAlert, Long> {
 
     boolean existsByUser_UserIdAndRecommendation_RecommendationIdAndIsReadFalse(
             Long userId, Long recommendationId);
+
+    Optional<UserAlert> findByAlertIdAndUser_UserId(Long alertId, Long userId);
 }

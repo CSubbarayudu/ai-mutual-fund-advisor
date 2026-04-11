@@ -28,6 +28,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     private final UserAlertRepository userAlertRepository;
     private final ChatHistoryRepository chatHistoryRepository;
     private final InvestorChatbotAi investorChatbotAi;
+    private final com.nihilent.mutualfund.advisor.service.SemanticSearchService semanticSearchService;
 
     @Override
     @Transactional
@@ -121,7 +122,9 @@ public class ChatbotServiceImpl implements ChatbotService {
         log.debug("AI context built for investorId={}: {} chars", investorId, ctx.length());
 
         // Step 8: Call AI
-        String answer = investorChatbotAi.chat(ctx.toString());
+        String ragContext = semanticSearchService.buildRagContext(request.getQuestion(), 4);
+        String fullContext = ctx.toString() + ragContext + "\nUser Question: " + request.getQuestion();
+        String answer = investorChatbotAi.chat(fullContext);
         log.info("AI chatbot response generated for investorId={}", investorId);
 
         // Step 9: Save to chat_history
