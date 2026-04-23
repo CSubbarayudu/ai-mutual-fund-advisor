@@ -38,3 +38,15 @@ src/main/resources/application.properties
 
 # OS / temp
 *.log
+
+# Local configs
+.claude/
+
+# Models
+models/
+
+# IDE
+.idea/
+
+# Build
+target/

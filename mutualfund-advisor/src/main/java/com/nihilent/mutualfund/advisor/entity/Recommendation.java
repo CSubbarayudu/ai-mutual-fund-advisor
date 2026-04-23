@@ -4,9 +4,12 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "recommendation")
@@ -40,8 +43,9 @@ public class Recommendation {
     @Column(name = "recommendation_reason", columnDefinition = "TEXT")
     private String recommendationReason;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "explanation_data", columnDefinition = "jsonb")
-    private String explanationData;
+    private Map<String, Object> explanationData;
 
     @Column(name = "recommendation_status", nullable = false, length = 20)
     private String recommendationStatus;

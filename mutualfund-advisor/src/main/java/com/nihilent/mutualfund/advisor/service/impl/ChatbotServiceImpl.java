@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,105 +30,121 @@ public class ChatbotServiceImpl implements ChatbotService {
     private final ChatHistoryRepository chatHistoryRepository;
     private final InvestorChatbotAi investorChatbotAi;
     private final com.nihilent.mutualfund.advisor.service.SemanticSearchService semanticSearchService;
+    private final MarketEventRepository marketEventRepository;
+    private final MarketEventSectorRepository marketEventSectorRepository;
+    private final FundSectorAllocationRepository fundSectorAllocationRepository;
 
     @Override
     @Transactional
     public ChatResponseDto chat(Long investorId, ChatRequestDto request) {
-        log.info("Chatbot request for investorId={} question='{}'",
-                investorId, request.getQuestion());
 
-        // Step 1: Validate investor
         InvestorProfile investor = investorProfileRepository.findById(investorId)
                 .orElseThrow(() -> new InvestorNotFoundException(investorId));
 
-        // Step 2: Resolve userId — UserAlert is user-owned, not investor-owned
         Long userId = investor.getUser().getUserId();
 
-        // Step 3: Get risk level
         String riskLevel = riskAssessmentRepository
                 .findTopByInvestor_InvestorIdOrderByAssessedAtDesc(investorId)
                 .map(RiskAssessment::getRiskLevel)
                 .orElse("NOT ASSESSED");
 
-        // Step 4: Get top 3 recommendations by market-adjusted score
         List<Recommendation> topRecs = recommendationRepository
                 .findByInvestor_InvestorIdOrderByMarketAdjustedScoreDesc(investorId)
                 .stream()
                 .limit(3)
                 .collect(Collectors.toList());
 
-        // Step 5: Get up to 3 unread active alerts via userId (correct relation)
+        List<Long> investorSectorIds = topRecs.stream()
+                .flatMap(rec -> fundSectorAllocationRepository
+                        .findByFund_FundId(rec.getFund().getFundId()).stream())
+                .map(alloc -> alloc.getSector().getSectorId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<MarketEvent> relevantEvents = marketEventRepository
+                .findByExpiryDateAfter(LocalDateTime.now()).stream()
+                .filter(ev -> marketEventSectorRepository
+                        .findByMarketEventEventId(ev.getEventId()).stream()
+                        .anyMatch(mes -> investorSectorIds.contains(
+                                mes.getSector().getSectorId())))
+                .limit(3)
+                .collect(Collectors.toList());
+
         List<UserAlert> alerts = userAlertRepository
                 .findByUser_UserIdAndIsReadFalseOrderByCreatedAtDesc(userId)
                 .stream()
                 .limit(3)
                 .collect(Collectors.toList());
 
-        // Step 6: Get last 5 chat messages for conversation context
         List<ChatHistory> recentHistory = chatHistoryRepository
                 .findByInvestor_InvestorIdOrderByAskedAtDesc(investorId)
                 .stream()
                 .limit(5)
                 .collect(Collectors.toList());
 
-        // Step 7: Build full context string
         LocalDateTime now = LocalDateTime.now();
         StringBuilder ctx = new StringBuilder();
 
         ctx.append("=== INVESTOR PROFILE ===\n");
         ctx.append("Name: ").append(investor.getUser().getFullName()).append("\n");
-        ctx.append("Risk Level: ").append(riskLevel).append("\n");
-        ctx.append("Investment Goal: ").append(investor.getInvestmentGoal()).append("\n");
-        ctx.append("Investment Horizon: ").append(investor.getInvestmentHorizon()).append("\n\n");
+        ctx.append("Risk Level: ").append(riskLevel).append("\n\n");
 
-        ctx.append("=== TOP FUND RECOMMENDATIONS (by market-adjusted score) ===\n");
+        ctx.append("=== TOP FUND RECOMMENDATIONS ===\n");
+
         if (topRecs.isEmpty()) {
-            ctx.append("No recommendations yet. Run POST /api/v1/scoring/trigger-cycle first.\n");
+            ctx.append("No recommendations available.\n");
         } else {
             for (Recommendation rec : topRecs) {
+
                 ctx.append("Fund: ").append(rec.getFund().getFundName())
-                   .append(" | Category: ").append(rec.getFund().getCategory())
-                   .append(" | Fund Risk: ").append(rec.getFund().getRiskLevel())
-                   .append(" | Base Score: ").append(rec.getBaseMatchScore())
-                   .append("/100 | Market-Adjusted Score: ")
-                   .append(rec.getMarketAdjustedScore()).append("/100\n");
-            }
-        }
-        ctx.append("\n");
+                        .append(" | Base: ").append(rec.getBaseMatchScore())
+                        .append(" | Adjusted: ").append(rec.getMarketAdjustedScore());
 
-        ctx.append("=== ACTIVE MARKET ALERTS ===\n");
-        if (alerts.isEmpty()) {
-            ctx.append("No active unread alerts.\n");
-        } else {
-            for (UserAlert alert : alerts) {
-                ctx.append("- ").append(alert.getAlertMessage())
-                   .append(" [Severity: ").append(alert.getSeverity()).append("]\n");
-            }
-        }
-        ctx.append("\n");
+                if (rec.getExplanationData() != null && !rec.getExplanationData().isEmpty()) {
 
-        ctx.append("=== RECENT CONVERSATION HISTORY ===\n");
-        if (recentHistory.isEmpty()) {
-            ctx.append("No prior conversation.\n");
-        } else {
-            for (ChatHistory h : recentHistory) {
-                ctx.append("Q: ").append(h.getQuestion()).append("\n");
-                ctx.append("A: ").append(h.getAnswer()).append("\n\n");
+                    Map<String, Object> exp = rec.getExplanationData();
+
+                    ctx.append(" | Analysis: ");
+                    ctx.append("ScoreDrop=")
+                            .append(exp.getOrDefault("scoreDrop", "N/A")).append(", ");
+                    ctx.append("Confidence=")
+                            .append(exp.getOrDefault("confidenceScore", "N/A")).append("%, ");
+                    ctx.append("RiskMatch=")
+                            .append(exp.getOrDefault("riskMatch", "N/A"));
+                }
+
+                ctx.append("\n");
             }
         }
 
-        ctx.append("=== CURRENT QUESTION ===\n");
+        ctx.append("\n=== MARKET EVENTS ===\n");
+
+        for (MarketEvent ev : relevantEvents) {
+            ctx.append(ev.getEventTitle())
+                    .append(" (").append(ev.getImpactType()).append(")\n");
+        }
+
+        ctx.append("\n=== ALERTS ===\n");
+
+        for (UserAlert alert : alerts) {
+            ctx.append(alert.getAlertMessage()).append("\n");
+        }
+
+        ctx.append("\n=== HISTORY ===\n");
+
+        for (ChatHistory h : recentHistory) {
+            ctx.append("Q: ").append(h.getQuestion()).append("\n");
+            ctx.append("A: ").append(h.getAnswer()).append("\n");
+        }
+
+        ctx.append("\n=== QUESTION ===\n");
         ctx.append(request.getQuestion());
 
-        log.debug("AI context built for investorId={}: {} chars", investorId, ctx.length());
-
-        // Step 8: Call AI
         String ragContext = semanticSearchService.buildRagContext(request.getQuestion(), 4);
-        String fullContext = ctx.toString() + ragContext + "\nUser Question: " + request.getQuestion();
-        String answer = investorChatbotAi.chat(fullContext);
-        log.info("AI chatbot response generated for investorId={}", investorId);
+        String fullContext = ctx.toString() + "\n" + ragContext;
 
-        // Step 9: Save to chat_history
+        String answer = investorChatbotAi.chat(fullContext);
+
         ChatHistory history = new ChatHistory();
         history.setUser(investor.getUser());
         history.setInvestor(investor);
@@ -136,9 +153,9 @@ public class ChatbotServiceImpl implements ChatbotService {
         history.setResponseType("CHAT");
         history.setModelName("llama-3.1-8b-instant");
         history.setAskedAt(now);
+
         chatHistoryRepository.save(history);
 
-        // Step 10: Return DTO
         return ChatResponseDto.builder()
                 .investorId(investorId)
                 .investorName(investor.getUser().getFullName())
@@ -152,6 +169,7 @@ public class ChatbotServiceImpl implements ChatbotService {
 
     @Override
     public List<ChatResponseDto> getChatHistory(Long investorId) {
+
         investorProfileRepository.findById(investorId)
                 .orElseThrow(() -> new InvestorNotFoundException(investorId));
 

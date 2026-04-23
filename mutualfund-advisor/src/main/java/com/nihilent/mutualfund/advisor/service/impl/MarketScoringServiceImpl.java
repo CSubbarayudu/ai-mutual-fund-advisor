@@ -18,6 +18,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -172,6 +173,18 @@ public class MarketScoringServiceImpl implements MarketScoringService {
             rec.setModelVersion("v2-market-aware");
             rec.setGeneratedAt(LocalDateTime.now());
         }
+
+        Map<String, Object> explanation = Map.of(
+                "riskMatch", investorRiskLevel,
+                "baseScore", baseMatchScore,
+                "marketAdjustedScore", marketAdjustedScore,
+                "confidenceScore", confidenceScore,
+                "activeSectorImpacts", activeEventCount,
+                "scoreDrop", baseMatchScore.subtract(marketAdjustedScore),
+                "dataQuality", "SYSTEM_SCORED"
+        );
+
+        rec.setExplanationData(explanation);
 
         Recommendation savedRecommendation = recommendationRepository.save(rec);
 
