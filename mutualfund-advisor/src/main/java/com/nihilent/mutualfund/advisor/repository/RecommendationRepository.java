@@ -23,7 +23,13 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
 
     List<Recommendation> findByInvestor_InvestorIdAndRecommendationStatus(Long investorId, String status);
 
-    List<Recommendation> findByInvestor_InvestorIdOrderByMarketAdjustedScoreDesc(Long investorId);
+    @Query("SELECT r FROM Recommendation r " +
+           "JOIN FETCH r.fund f " +
+           "JOIN FETCH r.investor i " +
+           "WHERE i.investorId = :investorId " +
+           "ORDER BY r.marketAdjustedScore DESC")
+    List<Recommendation> findByInvestor_InvestorIdOrderByMarketAdjustedScoreDesc(
+            @Param("investorId") Long investorId);
 
     @Query("SELECT DISTINCT r FROM Recommendation r " +
            "JOIN r.fund f " +
