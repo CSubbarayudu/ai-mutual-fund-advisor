@@ -48,8 +48,11 @@ public class SemanticSearchServiceImpl implements SemanticSearchService {
                 .collect(Collectors.toList());
             if (!withVec.isEmpty()) {
                 List<RagSearchResultDto> ranked = withVec.stream()
-                    .map(c -> Map.entry(c,
-                        cosineSimilarity(qVec, parseVector(c.getEmbeddingVector()))))
+                    .map(c -> {
+                        float[] parsed = parseVector(c.getEmbeddingVector(), c.getChunkId());
+                        return parsed != null ? Map.entry(c, cosineSimilarity(qVec, parsed)) : null;
+                    })
+                    .filter(Objects::nonNull)
                     .sorted(Map.Entry.<FundDocumentChunk, Double>
                         comparingByValue().reversed())
                     .limit(maxResults)
@@ -96,12 +99,22 @@ public class SemanticSearchServiceImpl implements SemanticSearchService {
         return denom == 0 ? 0.0 : dot / denom;
     }
 
-    private float[] parseVector(String s) {
-        String[] parts = s.split(",");
-        float[] v = new float[parts.length];
-        for (int i = 0; i < parts.length; i++)
-            v[i] = Float.parseFloat(parts[i].trim());
-        return v;
+    private float[] parseVector(String s, Long chunkId) {
+        if (s == null || s.isBlank()) {
+            log.warn("Skipping null/empty vector string for chunkId={}", chunkId);
+            return null;
+        }
+        s = s.replaceAll("[\\[\\]]", "").trim();
+        try {
+            String[] parts = s.split(",");
+            float[] v = new float[parts.length];
+            for (int i = 0; i < parts.length; i++)
+                v[i] = Float.parseFloat(parts[i].trim());
+            return v;
+        } catch (NumberFormatException e) {
+            log.warn("Unparseable vector entry, skipping. chunkId={}, error={}", chunkId, e.getMessage());
+            return null;
+        }
     }
 
     private RagSearchResultDto toDto(FundDocumentChunk c) {

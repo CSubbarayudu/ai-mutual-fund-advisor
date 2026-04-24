@@ -38,6 +38,14 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(e.getMessage()));
     }
 
+    @ExceptionHandler(RecommendationNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleRecommendationNotFound(
+            RecommendationNotFoundException ex) {
+        log.warn("RecommendationNotFoundException: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationErrors(MethodArgumentNotValidException e) {
         String errors = e.getBindingResult()

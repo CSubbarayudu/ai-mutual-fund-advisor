@@ -12,6 +12,7 @@ import com.nihilent.mutualfund.advisor.service.DocumentIngestionService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,34 +65,21 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             String chunkText = content.substring(start, end);
             chunk.setChunkText(chunkText);
 
-            try {
-                log.info("🔥 Generating embedding for chunk...");
+            log.debug("Generating embedding for chunk, fundId={}, documentId={}", fund.getFundId(), savedDoc.getDocumentId());
 
-                Response<Embedding> emb = embeddingModel.embed(chunkText);
+            Response<Embedding> emb = embeddingModel.embed(chunkText);
+            float[] vec = emb.content().vector();
 
-                float[] vec = emb.content().vector();
+            log.debug("Embedding generated, size={}", vec.length);
 
-                log.info("✅ Embedding generated, size={}", vec.length);
-
-                // FIXED: Correct PostgreSQL vector format
-                StringBuilder sb = new StringBuilder("[");
-                for (int i = 0; i < vec.length; i++) {
-                    sb.append(vec[i]);
-                    if (i < vec.length - 1) sb.append(",");
-                }
-                sb.append("]");
-
-                chunk.setEmbeddingVector(sb.toString());
-
-            } catch (Exception e) {
-
-                // 🔥 VERY IMPORTANT: Show FULL error
-                e.printStackTrace();
-
-                log.error("❌ EMBEDDING FAILED FULL ERROR:", e);
-
-                chunk.setEmbeddingVector(null);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < vec.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(vec[i]);
             }
+            String vectorStr = sb.toString();
+
+            chunk.setEmbeddingVector(vectorStr);
 
             chunks.add(chunk);
 

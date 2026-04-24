@@ -51,10 +51,7 @@ public class ExplanationServiceImpl implements ExplanationService {
         // Step 4: Fetch recommendation (Optional — correct return type)
         Recommendation recommendation = recommendationRepository
                 .findByInvestor_InvestorIdAndFund_FundId(investorId, fundId)
-                .orElseThrow(() -> new RuntimeException(
-                        "No scoring found for investor " + investorId +
-                        " and fund " + fundId +
-                        ". Please run POST /api/v1/scoring/trigger-cycle first."));
+                .orElseThrow(() -> new RecommendationNotFoundException(investorId, fundId));
 
         // Step 5: Fetch sector allocations
         List<FundSectorAllocation> allocations =
